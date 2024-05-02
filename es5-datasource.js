@@ -214,3 +214,5 @@ var data = [
 const SERVICE_URI = "https://services.syncfusion.com/js/production/api/orders";
 
 const cascadeData = new ej.data.DataManager({ url: SERVICE_URI });
+
+const purchaseData = new ej.data.DataManager({ url: SERVICE_URI });
