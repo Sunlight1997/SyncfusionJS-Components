@@ -210,3 +210,7 @@ var data = [
     Verified: !0,
   },
 ];
+
+const SERVICE_URI = "https://services.syncfusion.com/js/production/api/orders";
+
+const cascadeData = new ej.data.DataManager({ url: SERVICE_URI });
