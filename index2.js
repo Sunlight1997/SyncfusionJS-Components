@@ -1,4 +1,12 @@
+var countryElem;
+var countryObj;
+var stateElem;
+var stateObj;
+
+var country = [{ countryName: "United States" }, { countryName: "Australia" }];
+
 ej.grids.Grid.Inject(ej.grids.Edit, ej.grids.Toolbar);
+
 var grid = new ej.grids.Grid({
   dataSource: data,
   toolbar: ["Add", "Edit", "Delete", "Update", "Cancel"],
@@ -27,10 +35,29 @@ var grid = new ej.grids.Grid({
       },
     },
     {
-      field: "ShipCity",
-      headerText: "Ship City",
-      editType: "dropdownedit",
-      width: 150,
+      field: "ShipCountry",
+      headerText: "Ship Country",
+      width: 120,
+      edit: {
+        create: function () {
+          countryElem = document.createElement("input");
+          return countryElem;
+        },
+        read: function () {
+          return countryObj.text;
+        },
+        destroy: function () {
+          countryObj.destroy();
+        },
+        write: function () {
+          countryObj = new ej.dropdowns.DropDownList({
+            dataSource: country,
+            fields: { text: "countryName" },
+            placeholder: "Select a country",
+          });
+          countryObj.appendTo(countryElem);
+        },
+      },
     },
   ],
   height: 265,
