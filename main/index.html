@@ -34,7 +34,7 @@
       ej.gantt.Selection,
       ej.gantt.Filter,
       ej.gantt.Sort,
-      ej.gantt.RowDD // Ensure Row Drag and Drop module is included
+      ej.gantt.RowDD
     );
 
     var ganttChart = new ej.gantt.Gantt({
@@ -106,7 +106,7 @@
         },
       ],
       treeColumnIndex: 1,
-      height: "450px",
+      height: "950px",
       splitterSettings: { position: "35%" },
       editSettings: {
         allowEditing: true,
@@ -156,56 +156,30 @@
           zoomToFit();
         }
       },
+
       rowDragStartHelper: function (args) {
-        console.log("Drag start data:", args.data); // Check what is being dragged
+        console.log("Drag start data:", args.data);
         if (args.data[0].level === 0) {
           args.cancel = true;
         }
       },
-
       rowDrop: function (args) {
-        console.log("Drop event data:", args); // Log the entire args to see what's missing
-        if (!args.data || args.data.length === 0 || !args.dropRecord) {
-          console.error(`
-          ******************
-          ******************
-          ******************
-          ******************
-          ******************
-          ******************
-          ******************
-          ******************
-          Drag or drop information is incomplete.
-          ******************
-          ******************
-          ******************
-          ******************
-          ******************
-          ******************
-          ******************
-          ******************
-          `);
+        console.log("Drop event data:", args);
+        if (args.dropIndex === 0 || (args.data && args.data[0].level === 0)) {
           args.cancel = true;
-          return; // Exit function if the basic data is not available
-        }
-
-        // Additional check to prevent dropping on top-level tasks or the first row
-        if (args.dropIndex === 0 || args.data[0].level === 0) {
-          args.cancel = true; // Cancel the drop
         } else {
           var requestData = {
             action: "RowDrop",
-            dragTaskId: args.data[0].TaskID, // Dragged task ID
+            dragTaskId: args.data[0].TaskID,
             dragTaskParentId: args.data[0].parentItem
               ? args.data[0].parentItem.taskId
-              : null, // Dragged task parent ID, check if parentItem exists
-            dropTaskId: args.dropRecord.TaskID, // Drop target task ID
+              : null,
+            dropTaskId: args.dropRecord.TaskID,
             dropTaskParentId: args.dropRecord.parentItem
               ? args.dropRecord.parentItem.taskId
-              : null, // Drop target task parent ID, check if parentItem exists
+              : null,
             dropPosition: args.dropPosition,
           };
-
           $.ajax({
             url: "ppmreports/ponSF/GanttData",
             type: "POST",
@@ -220,6 +194,7 @@
             data: JSON.stringify(requestData),
             success: function (response) {
               console.log("Row drop processed successfully:", response);
+              updateTasks(response.result); // Assuming updateTasks is available in scope
             },
             error: function (xhr, status, error) {
               console.error(
@@ -232,6 +207,12 @@
         }
       },
     });
+
+    function updateTasks(updatedTasks) {
+      console.log("Called updateTasks with:", updatedTasks);
+      ganttChart.dataSource = updatedTasks; // Update the internal data source
+      ganttChart.refresh(); // Refresh the Gantt chart to reflect changes
+    }
 
     function zoomToFit() {
       var taskData = ganttChart.getTaskData();
