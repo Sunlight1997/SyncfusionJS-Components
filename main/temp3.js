@@ -27,6 +27,13 @@ function compareArrays(arr1, arr2) {
   return i;
 }
 
-const a = 0, b = NaN;
-
-console.log(!!a, !b);
+if ("chain" === i.item.id) {
+  const e = this.selectionModule.getSelectedRecords();
+  for (let t = 1; t < e.length; t++) {
+    let n = e[t - 1].TaskID + "FS";
+    !1 === this.connectorLineEditModule.validatePredecessorRelation(e[t], n)
+      ? (alert("Cannot create a circular dependency â€“ Action blocked"),
+        (i.cancel = !0))
+      : this.connectorLineEditModule.addPredecessor(e[t], e[t - 1].TaskID);
+  }
+}
