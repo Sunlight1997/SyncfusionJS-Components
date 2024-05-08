@@ -19,11 +19,6 @@
     ></script>
     <script src="https://cdn.syncfusion.com/ej2/ej2-gantt/dist/global/ej2-gantt.min.js"></script>
   </head>
-  <style>
-    #Editing {
-      height: 100vh;
-    }
-  </style>
   <body>
     <div id="Editing"></div>
   </body>
@@ -128,7 +123,12 @@
         "ZoomToFit",
         "Indent",
         "Outdent",
-        "Link Tasks",
+        {
+          text: "Link Tasks",
+          tooltipText: "Chain",
+          id: "chain",
+          prefixIcon: "e-link",
+        },
       ],
       allowPdfExport: true,
       searchSettings: {
@@ -136,6 +136,11 @@
         ignoreCase: true,
       },
       allowSelection: true,
+      selectionSettings: {
+        mode: "Row",
+        type: "Multiple",
+        enableToggle: false,
+      },
       gridLines: "Both",
       highlightWeekends: true,
       labelSettings: {
@@ -155,6 +160,9 @@
           ganttChart.pdfExport({ fileName: "Gantt_Software_MVP.pdf" });
         } else if (args.item.text === "ZoomToFit") {
           zoomToFit();
+        } else if (args.item.id === "chain") {
+          const selectedItems = ganttChart.selectionModule.getSelectedRecords();
+          console.log(selectedItems);
         }
       },
 
@@ -165,8 +173,13 @@
         }
       },
       rowDrop: function (args) {
-        console.log("Drop event data:", args);
-        if (args.dropIndex === 0 || (args.data && args.data[0].level === 0)) {
+        console.log(
+          "Drop event data:",
+          args,
+          "=============== dropIndex =>",
+          args.dropIndex
+        );
+        if (!args.dropIndex || (args.data && !args.data[0].level)) {
           args.cancel = true;
         } else {
           var requestData = {
@@ -181,6 +194,8 @@
               : null,
             dropPosition: args.dropPosition,
           };
+
+          console.log(requestData);
           $.ajax({
             url: "ppmreports/ponSF/GanttData",
             type: "POST",
@@ -195,7 +210,10 @@
             data: JSON.stringify(requestData),
             success: function (response) {
               console.log("Row drop processed successfully:", response);
-              updateTasks(response.result); // Assuming updateTasks is available in scope
+
+              console.log(response.result, ganttChart.dataSource);
+
+              // updateTasks(response.result); // Assuming updateTasks is available in scope
             },
             error: function (xhr, status, error) {
               console.error(
@@ -211,7 +229,7 @@
 
     function updateTasks(updatedTasks) {
       console.log("Called updateTasks with:", updatedTasks);
-      ganttChart.dataSource = updatedTasks; // Update the internal data source
+      // ganttChart.dataSource = updatedTasks; // Update the internal data source
       ganttChart.refresh(); // Refresh the Gantt chart to reflect changes
     }
 
@@ -234,6 +252,38 @@
         timelineEndDate: maxDate,
       });
     }
+
+    function compareArrays(arr1, arr2) {
+      var i = true,
+        isA1 = Array.isArray(arr1),
+        isA2 = Array.isArray(arr2);
+
+      if (isA1 !== isA2) {
+        return false;
+      } else if (!(isA1 && isA2)) {
+        if (arr1 instanceof Object && arr2 instanceof Object) {
+          const keyVal1 = Object.entries(arr1),
+            keyVal2 = Object.entries(arr2);
+          var res = true;
+          if (keyVal1.length !== keyVal2.length) return false;
+          keyVal1.forEach(([key1, val1], idx) => {
+            if (key1 !== keyVal2[idx][0] || val1 !== keyVal2[idx][1])
+              res = false;
+          });
+          return res;
+        }
+        return arr1 === arr2;
+      } else if (arr1.length !== arr2.length) {
+        return false;
+      }
+
+      arr1.forEach((val, idx) => {
+        if (!compareArrays(val, arr2[idx])) i = false;
+      });
+      return i;
+    }
+
+    console.log(ganttChart.dataSource);
 
     ganttChart.appendTo("#Editing");
   </script>
