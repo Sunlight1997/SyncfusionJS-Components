@@ -23,6 +23,28 @@
     <div id="Editing"></div>
   </body>
   <script>
+    var cloneObject = (obj) => {
+      return {
+        ActivityType: obj.ActivityType,
+        Duration: obj.Duration,
+        DurationUnit: obj.DurationUnit,
+        EndDate: obj.EndDate,
+        ParentId: obj.ParentId,
+        Progress: obj.Progress,
+        StartDate: obj.StartDate,
+        TaskID: obj.TaskID,
+        TaskName: obj.TaskName,
+        info: obj.info,
+        sort_order: obj.sort_order,
+      };
+    };
+    var ActivityTypeObj;
+    var ActivityType = [
+      { activityTypeName: "Activity" },
+      { activityTypeName: "Milestone" },
+      { activityTypeName: "Stage" },
+    ];
+    var zoomToFitV = false;
     ej.gantt.Gantt.Inject(
       ej.gantt.Edit,
       ej.gantt.Toolbar,
@@ -94,14 +116,40 @@
           textAlign: "Right",
         },
         {
-          field: "Progress",
-          headerText: "Progress",
+          field: "Duration",
+          headerText: "Duration",
           width: "100",
           textAlign: "Right",
         },
+        {
+          field: "ActivityType",
+          headerText: "Activity Type",
+          autoFit: !0,
+          edit: {
+            create: function () {
+              ActivityTypeElem = document.createElement("input");
+              return ActivityTypeElem;
+            },
+            read: function () {
+              return ActivityTypeObj.text;
+            },
+            destroy: function () {
+              ActivityTypeObj.destroy();
+            },
+            write: function () {
+              ActivityTypeObj = new ej.dropdowns.DropDownList({
+                dataSource: ActivityType,
+                fields: { text: "activityTypeName" },
+                placeholder: "Please Select a Activity Type ...",
+                floatLabelType: "Never",
+              });
+              ActivityTypeObj.appendTo(ActivityTypeElem);
+            },
+          },
+        },
       ],
       treeColumnIndex: 1,
-      height: "900px",
+      height: "100vh",
       splitterSettings: { position: "35%" },
       editSettings: {
         allowEditing: true,
@@ -123,6 +171,13 @@
         "ZoomToFit",
         "Indent",
         "Outdent",
+
+        {
+          text: "Indent Multiple",
+          tooltipText: "Indent Selected Tasks",
+          id: "GanttIndentMultiple", // Unique ID for the button
+          prefixIcon: "e-indent", // Optional: Icon for the button (change as needed)
+        },
         {
           text: "Link Tasks",
           tooltipText: "Chain",
@@ -158,14 +213,21 @@
       toolbarClick: function (args) {
         if (args.item.id === "Editing_pdfexport") {
           ganttChart.pdfExport({ fileName: "Gantt_Software_MVP.pdf" });
-        } else if (args.item.text === "ZoomToFit") {
-          zoomToFit();
+        } else if (args.item.text === "Zoom to fit") {
+          console.log("Zoom to Fit");
+          zoomToFitV = true;
+        } else if (args.item.id === "GanttIndentMultiple") {
+          // Assuming you want to indent multiple tasks at once, call your function here
+          sendIndentOutdentRequest("indented");
         } else if (args.item.id === "chain") {
           const selectedItems = ganttChart.selectionModule.getSelectedRecords();
           for (let idx = 1; idx < selectedItems.length; idx++) {
             let prev = selectedItems[idx - 1].TaskID + "FS";
             if (
-              ganttChart.connectorLineEditModule.validatePredecessorRelation(selectedItems[idx], prev)
+              ganttChart.connectorLineEditModule.validatePredecessorRelation(
+                selectedItems[idx],
+                prev
+              )
             ) {
               ganttChart.connectorLineEditModule.addPredecessor(
                 selectedItems[idx],
@@ -202,6 +264,7 @@
               : null,
             dropPosition: args.dropPosition,
           };
+          console.log(requestData, JSON.stringify(requestData));
           $.ajax({
             url: "ppmreports/ponSF/GanttData",
             type: "POST",
@@ -216,6 +279,7 @@
             data: JSON.stringify(requestData),
             success: function (response) {
               console.log("Row drop processed successfully:", response);
+              updateTasks(response.result);
             },
             error: function (xhr, status, error) {
               console.error(
@@ -229,11 +293,33 @@
       },
     });
 
-    // function updateTasks(updatedTasks) {
-    //   console.log("Called updateTasks with:", updatedTasks);
-    //   // ganttChart.dataSource = updatedTasks; // Update the internal data source
-    //   ganttChart.refresh(); // Refresh the Gantt chart to reflect changes
-    // }
+    function updateTasks(updatedTasks) {
+      console.log("updateTasks");
+      ganttChart.dataSource = updatedTasks; // Update the internal data source
+      //   ganttChart.refresh(); // Refresh the Gantt chart to reflect changes
+      if (zoomToFitV) ganttChart.timelineModule.processZoomToFit();
+    }
+
+    // AJAX function to handle indent and outdent requests
+    function sendIndentOutdentRequest() {
+      let selectedRecords = ganttChart.selectionModule.getSelectedRecords();
+      let parent,
+        record = selectedRecords[0], childs = [];
+      const upper = ganttChart.currentViewData[record.index - 1];
+      console.log(upper);
+      if (record.level === upper.level) parent = upper;
+      else if (record.level > upper.level) parent = "not allowed";
+      else {
+        let i = ganttChart.getTaskByUniqueID(upper.parentItem.uniqueID);
+        for (let t = 0; t < ganttChart.currentViewData.length; t++)
+          if (ganttChart.currentViewData[t].taskData === i.taskData)
+            parent = ganttChart.currentViewData[t];
+      }
+      for(let record of selectedRecords) {
+        console.log(record.index, parent.index);
+        ganttChart.editModule.indentOutdentRow([record.index], parent.index, "child");
+      }
+    }
 
     function zoomToFit() {
       var taskData = ganttChart.getTaskData();
